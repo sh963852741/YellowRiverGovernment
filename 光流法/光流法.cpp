@@ -38,14 +38,16 @@ int main()
 {
     Mat frame;
     Mat result;
-    VideoCapture capture("123.avi");
+    VideoCapture capture("VID_20210627_202501.mp4");
     helpinformation();
+
     if (capture.isOpened())
     {
-        VideoWriter wrt("res.mp4", VideoWriter::fourcc('H', '2', '6', '4'), 24.0, cv::Size(1920, 1080));
+        VideoWriter wrt("res_refined.mp4", VideoWriter::fourcc('H', '2', '6', '4'), 25.0, cv::Size(522, 922));
         while (true)
         {
             capture >> frame;
+            
 
             if (!frame.empty())
             {
@@ -82,12 +84,14 @@ void trackingFarneback(Mat& frame, Mat& output)
 
     Mat result;//保存结果 CF_32FC2
     calcOpticalFlowFarneback(gray_prev, gray, result, 0.5, 6, 7, 6, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
-    for (int i = 0; i < gray_prev.rows; i += 30)
+    for (int i = 0; i < gray_prev.rows; ++i)
     {
-        for (int j = 0; j < gray_prev.cols; j += 30)
+        for (int j = 0; j < gray_prev.cols; ++j)
         {
             Point2f pt = result.at<Point2f>(i, j);
-            line(output, Point2f(j, i), Point2f(j + pt.x, i + pt.y), Scalar(0, 255, 0), 2);
+            //if(pt.y > 0 && pt.x* pt.x + pt.y * pt.y > 9)
+            if (abs(pt.y) > 1 && abs(pt.x) > 1)
+                line(output, Point2f(j, i), Point2f(j + pt.x, i + pt.y), Scalar(0, 255, 0), 1);
         }
     }
 

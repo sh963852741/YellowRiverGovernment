@@ -15,7 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="稠密光流法示例.cpp">
+    <ClCompile Include="FlowNetV2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="OpticalFlow.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

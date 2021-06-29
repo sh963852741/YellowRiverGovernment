@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "帧差法", "帧差法\帧�
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "光流法", "光流法\光流法.vcxproj", "{3B1274D3-6443-4150-8D4C-54F76BD3795B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FlowNetV2", "FlowNetV2\FlowNetV2.vcxproj", "{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{3B1274D3-6443-4150-8D4C-54F76BD3795B}.Release|x64.Build.0 = Release|x64
 		{3B1274D3-6443-4150-8D4C-54F76BD3795B}.Release|x86.ActiveCfg = Release|Win32
 		{3B1274D3-6443-4150-8D4C-54F76BD3795B}.Release|x86.Build.0 = Release|Win32
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Debug|x64.ActiveCfg = Debug|x64
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Debug|x64.Build.0 = Debug|x64
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Debug|x86.ActiveCfg = Debug|Win32
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Debug|x86.Build.0 = Debug|Win32
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Release|x64.ActiveCfg = Release|x64
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Release|x64.Build.0 = Release|x64
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Release|x86.ActiveCfg = Release|Win32
+		{5FF856D5-EA64-46FD-BD8D-A74FE288D7BA}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
