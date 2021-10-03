@@ -1,11 +1,12 @@
 ﻿// Project1.cpp : 定义应用程序的入口点。
 //
 
-#include "framework.h"
 #include "gui.h"
-#include "Uilib.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui_c.h>
+#include "framework.h"
+#include "Uilib.h"
+
 
 using namespace DuiLib;
 
@@ -13,7 +14,15 @@ using namespace DuiLib;
 class CWndUI : public CControlUI
 {
 public:
-	CWndUI() : m_hWnd(NULL) {}
+	RECT rc;
+
+	CWndUI(int x, int y, int w, int h) : m_hWnd(NULL) 
+	{
+		rc.left = x;
+		rc.top = y;
+		rc.right = w + x;
+		rc.bottom = y + h;
+	}
 
 	virtual void SetInternVisible(bool bVisible = true)
 	{
@@ -23,8 +32,9 @@ public:
 
 	virtual void SetPos(RECT rc)
 	{
+		this->rc = rc;
 		__super::SetPos(rc);
-		::SetWindowPos(m_hWnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOACTIVATE);
+		::SetWindowPos(m_hWnd, HWND_TOP, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 
 	BOOL Attach(HWND hWndNew)
@@ -81,30 +91,29 @@ public:
 	int drawY = 120;
 	cv::Mat imgCam;
 	cv::Mat imgDraw;
+	CWndUI* pUI;
+	CWndUI* pUI2;
+	
 
 	/* 摄像机初始化按钮 */
 	void camInit() {
 		//以下为测试组件代码，请修改为函数逻辑
 		updateDraw();
-
-
-
+		pRich->AppendText("初始化按钮被点击\n");
+		
+		
 	}
 
 	/* 播放画面按钮 */
 	void playVedio() {
 		
-		//pRich->AppendText("播放画面按钮被点击\n");
-		//if (cv::getWindowProperty("cam", CV_WND_PROP_VISIBLE) > 0)
-		//	cv::destroyWindow("cam");
+		pRich->AppendText("播放画面按钮被点击\n");
 		
 		/* 请在这段函数下方生成要播放的img并imshow("cam",img); */
 		imgCam = cv::imread("1.png", 1);
 		//imgCam.rows;
 		//cv::cv2CopyMakeBorder(imgCam, imgCam, 0 ,0, 0, 0,CV_HAL_BORDER_CONSTANT, value=[0,0,0]);
 		imshow("cam",imgCam);
-		
-		
 	}
 
 	void updateDraw() {
@@ -129,9 +138,11 @@ public:
 			else if (msg.pSender->GetName() == _T("playBtn")) {
 				playVedio();
 			}
-			imshow("draw", imgDraw);
-			imshow("cam", imgCam);
 		}
+		pUI->SetPos(pUI->rc);
+		pUI2->SetPos(pUI2->rc);
+		imshow("cam", imgCam);
+		imshow("draw", imgDraw);
 
 	}
 	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -150,15 +161,16 @@ public:
 			camWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("camMedia")));
 			drawWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("draw")));
 
-			CWndUI* pUI = new CWndUI;
+			pUI = new CWndUI(10,10,camX,camY);
 			camWnd->RemoveAll();
 			camWnd->Add(pUI);
 			hWndVedio = CreateWindow(_T("STATIC"), _T("摄像机画面"), WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 10, 10, camX, camY,
 				m_pm.GetPaintWindow(), (HMENU)0, NULL, NULL);
+			pUI->Attach(hWndVedio);
 			pUI->SetEnabled(false);
 			
 			
-			CWndUI* pUI2 = new CWndUI;
+			pUI2 = new CWndUI(310,401,drawX,drawY);
 			drawWnd->RemoveAll();
 			drawWnd->Add(pUI2);
 			hWndDraw = CreateWindow(_T("STATIC"), _T("柱状图"), WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 310, 401, drawX, drawY,
@@ -181,7 +193,7 @@ public:
 			imgDraw.create(drawY, drawX, CV_8UC3);
 			imgCam.create(camY, camX, CV_8UC3);
 			imgDraw.setTo(cv::Scalar(255, 255, 255));
-			imgCam.setTo(cv::Scalar(12,34, 56));
+			imgCam.setTo(cv::Scalar(255,255, 255));
 			imshow("draw", imgDraw);
 			imshow("cam", imgCam);
 
@@ -209,18 +221,17 @@ public:
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR
 	/*lpCmdLine*/, int nCmdShow)
 {
+	//::MessageBox(NULL, _T("110"), _T("提示2"), 0);;
 	CPaintManagerUI::SetInstance(hInstance);
 	CPaintManagerUI::SetResourcePath(CPaintManagerUI::GetInstancePath());
 	CFrameWindowWnd* pFrame = new CFrameWindowWnd();
 	if (pFrame == NULL) return 0;
 	pFrame->Create(NULL, _T("YREC边坡踏岸识别"), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
 	pFrame->ShowWindow(true);
-	
-
-
 	CPaintManagerUI::MessageLoop();	
 	
 
 	return 0;
 }
+
 
