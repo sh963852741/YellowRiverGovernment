@@ -13,6 +13,7 @@
 
 using namespace cv;
 using namespace std;
+void makeMask(cv::Mat picture);
 void on_mouse(int event, int x, int y, int flags, void* ustc);
 
 Mat frame_arr[2];
@@ -21,7 +22,7 @@ Mat maskImage;
 int main()
 {
 	VideoPictrueGetter c("大土坡.mp4");
-	PictureGetter* pg = &c;
+	PictureGetter& pg = c;
 	
 	/* 初始化视频读取和写入 */
 	//VideoCapture capture("大土坡.mp4");
@@ -35,19 +36,15 @@ int main()
 	//}
 	
 	Mat direction_mask, magn_mask, final_mask;
-	*pg >> frame_arr;
+	pg >> frame_arr;
 	/* 设置ROI */
-	cv::namedWindow("图片");
-	cv::setMouseCallback("图片", on_mouse, 0); // 调用回调函数    
-	cv::imshow("图片", frame_arr[0]);
-	cv::waitKey(0);
-	cv::setMouseCallback("图片", NULL, 0); // 解除回调函数 
+	makeMask(frame_arr[0]);
 
 	Mat frame_gray[2];
 	Mat frame_masked_arr[2];
 	while (true) {
 		
-		*pg >> frame_arr;
+		pg >> frame_arr;
 
 		// 对图像进行掩膜操作
 		frame_arr[0].copyTo(frame_masked_arr[0], maskImage);
@@ -102,8 +99,18 @@ int main()
 	wrt.release();
 }
 
+void makeMask(cv::Mat picture)
+{
+	cv::namedWindow("图片");
+	cv::setMouseCallback("图片", on_mouse, &picture); // 调用回调函数    
+	cv::imshow("图片", picture);
+	cv::waitKey(0);
+	cv::setMouseCallback("图片", NULL, 0); // 解除回调函数 
+}
+
 void on_mouse(int event, int x, int y, int flags, void* ustc) // event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号    
 {
+	Mat& pic = *((Mat*)ustc);
 	static vector<vector<Point>> vctvctPoint; // 保存n个多边形的点
 	static Point ptStart(-1, -1); // 初始化起点
 	static Point cur_pt(-1, -1); // 初始化临时节点
@@ -112,29 +119,29 @@ void on_mouse(int event, int x, int y, int flags, void* ustc) // event鼠标事件代
 	{
 		ptStart = Point(x, y);
 		vctPoint.push_back(ptStart);
-		cv::circle(frame_arr[0], ptStart, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
-		cv::imshow("图片", frame_arr[0]);
+		cv::circle(pic, ptStart, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
+		cv::imshow("图片", pic);
 		//cv::putText(tmp, temp, ptStart, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0, 0), 1, 8);
 	}
 	else if (event == EVENT_MOUSEMOVE && (flags & EVENT_FLAG_LBUTTON))
 	{
 		cur_pt = Point(x, y);
-		cv::line(frame_arr[0], vctPoint.back(), cur_pt, cv::Scalar(0, 255, 0, 0), 1, 8, 0);
-		cv::circle(frame_arr[0], cur_pt, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
-		cv::imshow("图片", frame_arr[0]);
+		cv::line(pic, vctPoint.back(), cur_pt, cv::Scalar(0, 255, 0, 0), 1, 8, 0);
+		cv::circle(pic, cur_pt, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
+		cv::imshow("图片", pic);
 		vctPoint.push_back(cur_pt);
 		//cv::putText(tmp, temp, cur_pt, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0, 0));
 	}
 	else if (event == EVENT_LBUTTONUP)
 	{
 		cur_pt = Point(x, y);
-		cv::line(frame_arr[0], ptStart, cur_pt, cv::Scalar(0, 255, 0, 0), 1, 8, 0);
-		cv::circle(frame_arr[0], cur_pt, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
-		cv::imshow("图片", frame_arr[0]);
+		cv::line(pic, ptStart, cur_pt, cv::Scalar(0, 255, 0, 0), 1, 8, 0);
+		cv::circle(pic, cur_pt, 1, cv::Scalar(255, 0, 255), CV_FILLED, CV_AA, 0);
+		cv::imshow("图片", pic);
 		vctPoint.push_back(cur_pt);
 		vctvctPoint.push_back(vctPoint);
 		vctPoint.clear();
-		maskImage = Mat::zeros(frame_arr[0].size(), frame_arr[0].type());
+		maskImage = Mat::zeros(pic.size(), pic.type());
 		//把点构成任意多边形进行填充
 		for (int i = 0; i < vctvctPoint.size(); ++i)
 		{
