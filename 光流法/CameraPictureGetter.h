@@ -8,22 +8,25 @@
 #include <thread>
 #include <queue>
 #include <windows.h>
+#include "PictrueGetter.h"
+#include "CameraController.h"
 
 using namespace std;
 using namespace cv;
 
 const unsigned char MAX_CHCAHE_LEN = 2;
 
-class PictureGetter
+class CameraPictureGetter: PictureGetter
 {
 public:
-	void init();
 	// 将图片存入队列
 	void chachePicture();
+	~CameraPictureGetter();
+	CameraPictureGetter(CameraController controller);
 	PictureGetter& operator >> (cv::Mat image[2]);
-	~PictureGetter();
-	PictureGetter();
+	bool stop_thread = false;
 private:
+	CameraController controller;
 	// SDK初始化是否成功
 	bool is_netSKD_inited = false;
 	LLONG login_handle = 0L;
@@ -35,7 +38,6 @@ private:
 	queue<cv::Mat*> picture_cache;
 	cv::Mat pic_arr[2];
 	thread th;
-	cv::Mat fileToMat(char buffer[], unsigned int len);
 	// 缓存中有多少内容
 	HANDLE chache_size_semaphore = NULL;
 	// 有多少剩余空间

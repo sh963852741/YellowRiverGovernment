@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FlowNetV2", "FlowNetV2\Flow
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "视频稳定", "视频稳定\视频稳定.vcxproj", "{89653C63-E113-402B-B1FD-6D58CF83D5E9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Project1", "Project1\Project1.vcxproj", "{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,14 @@ Global
 		{89653C63-E113-402B-B1FD-6D58CF83D5E9}.Release|x64.Build.0 = Release|x64
 		{89653C63-E113-402B-B1FD-6D58CF83D5E9}.Release|x86.ActiveCfg = Release|Win32
 		{89653C63-E113-402B-B1FD-6D58CF83D5E9}.Release|x86.Build.0 = Release|Win32
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Debug|x64.ActiveCfg = Debug|x64
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Debug|x64.Build.0 = Debug|x64
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Debug|x86.ActiveCfg = Debug|Win32
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Debug|x86.Build.0 = Debug|Win32
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Release|x64.ActiveCfg = Release|x64
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Release|x64.Build.0 = Release|x64
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Release|x86.ActiveCfg = Release|Win32
+		{87C79A3E-438A-4BAF-A2C4-FA2FAB7EA044}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

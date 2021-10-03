@@ -8,7 +8,8 @@
 
 #include <thread>
 
-#include "PictureGetter.h"
+#include "CameraPictureGetter.h"
+#include "VideoPictureGetter.h"
 
 using namespace cv;
 using namespace std;
@@ -19,8 +20,8 @@ Mat maskImage;
 
 int main()
 {
-	PictureGetter pg;
-	pg.init();
+	VideoPictrueGetter c("大土坡.mp4");
+	PictureGetter* pg = &c;
 	
 	/* 初始化视频读取和写入 */
 	//VideoCapture capture("大土坡.mp4");
@@ -34,7 +35,7 @@ int main()
 	//}
 	
 	Mat direction_mask, magn_mask, final_mask;
-	pg >> frame_arr;
+	*pg >> frame_arr;
 	/* 设置ROI */
 	cv::namedWindow("图片");
 	cv::setMouseCallback("图片", on_mouse, 0); // 调用回调函数    
@@ -46,7 +47,7 @@ int main()
 	Mat frame_masked_arr[2];
 	while (true) {
 		
-		pg >> frame_arr;
+		*pg >> frame_arr;
 
 		// 对图像进行掩膜操作
 		frame_arr[0].copyTo(frame_masked_arr[0], maskImage);

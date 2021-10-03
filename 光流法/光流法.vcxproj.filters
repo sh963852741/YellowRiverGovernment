@@ -18,12 +18,27 @@
     <ClCompile Include="稠密光流法示例.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="PictureGetter.cpp">
+    <ClCompile Include="CameraPictureGetter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraController.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoPictureGetter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="PictureGetter.h">
+    <ClInclude Include="CameraPictureGetter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraController.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PictrueGetter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoPictureGetter.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
