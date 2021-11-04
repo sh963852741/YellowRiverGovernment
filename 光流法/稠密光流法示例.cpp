@@ -21,20 +21,23 @@ Mat maskImage;
 
 int main()
 {
-	VideoPictrueGetter c("大土坡.mp4");
+	Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
+	Ptr<BackgroundSubtractorKNN> fgbg = createBackgroundSubtractorKNN();
+
+	VideoPictrueGetter c("焦作视频马赛克.mp4");
 	PictureGetter& pg = c;
-	
+
 	/* 初始化视频读取和写入 */
 	//VideoCapture capture("大土坡.mp4");
-	VideoWriter wrt("res.mp4", VideoWriter::fourcc('H', '2', '6', '4'), 24,// capture.get(cv::CAP_PROP_FPS),
-		cv::Size(1280, 720));
-		//cv::Size(capture.get(cv::CAP_PROP_FRAME_WIDTH), capture.get(cv::CAP_PROP_FRAME_HEIGHT)));
-	//if (!capture.isOpened()) {
-	//	//error in opening the video input
-	//	cerr << "Unable to open file!" << endl;
-	//	return 0;
-	//}
-	
+	VideoWriter wrt("res.mp4", VideoWriter::fourcc('H', '2', '6', '4'), 25,// capture.get(cv::CAP_PROP_FPS),
+		cv::Size(1024, 576));
+	//cv::Size(capture.get(cv::CAP_PROP_FRAME_WIDTH), capture.get(cv::CAP_PROP_FRAME_HEIGHT)));
+//if (!capture.isOpened()) {
+//	//error in opening the video input
+//	cerr << "Unable to open file!" << endl;
+//	return 0;
+//}
+
 	Mat direction_mask, magn_mask, final_mask;
 	pg >> frame_arr;
 	/* 设置ROI */
@@ -43,8 +46,9 @@ int main()
 	Mat frame_gray[2];
 	Mat frame_masked_arr[2];
 	while (true) {
-		
+
 		pg >> frame_arr;
+		if (frame_arr[1].empty()) break;
 
 		// 对图像进行掩膜操作
 		frame_arr[0].copyTo(frame_masked_arr[0], maskImage);
@@ -52,7 +56,7 @@ int main()
 		// 变为灰度图像
 		cvtColor(frame_masked_arr[0], frame_gray[0], COLOR_BGR2GRAY);
 		cvtColor(frame_masked_arr[1], frame_gray[1], COLOR_BGR2GRAY);
-		Mat flow(frame_arr[0].size(), CV_32FC2);
+		Mat flow(frame_gray[0].size(), CV_32FC2);
 		calcOpticalFlowFarneback(frame_gray[0], frame_gray[1], flow, 0.5, 3, 15, 3, 5, 1.2, 0);
 		// 光流结果可视化
 		Mat flow_parts[2];
@@ -78,20 +82,20 @@ int main()
 		//bitwise_and(direction_mask, magn_mask, final_mask);
 		//frame2.setTo(Scalar(0,0,255), final_mask);
 
-		
-		for (int i = 0; i < frame_masked_arr[1].rows; i++) {
-			for (int j = 0; j < frame_masked_arr[1].cols; j++) {
-				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magn_norm.at<float>(i, j) > 0.8)
+		Mat res_img = frame_masked_arr[1].clone();
+		for (int i = 0; i < res_img.rows; i++) {
+			for (int j = 0; j < res_img.cols; j++) {
+				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magnitude.at<float>(i, j) > 0.55)
 				{
-					frame_masked_arr[1].at<Vec3b>(i, j)[0] = bgr.at<Vec3b>(i, j)[0];
-					frame_masked_arr[1].at<Vec3b>(i, j)[1] = bgr.at<Vec3b>(i, j)[1];
-					frame_masked_arr[1].at<Vec3b>(i, j)[2] = bgr.at<Vec3b>(i, j)[2];
+					res_img.at<Vec3b>(i, j)[0] = bgr.at<Vec3b>(i, j)[0];
+					res_img.at<Vec3b>(i, j)[1] = bgr.at<Vec3b>(i, j)[1];
+					res_img.at<Vec3b>(i, j)[2] = bgr.at<Vec3b>(i, j)[2];
 				}
 			}
 		}
 
-		imshow("result", frame_masked_arr[1]);
-		wrt << frame_masked_arr[1];
+		imshow("result", res_img);
+		wrt << res_img;
 		int keyboard = waitKey(30);
 		if (keyboard == 'q' || keyboard == 27)
 			break;
@@ -111,6 +115,7 @@ void makeMask(cv::Mat picture)
 void on_mouse(int event, int x, int y, int flags, void* ustc) // event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号    
 {
 	Mat& pic = *((Mat*)ustc);
+	maskImage = Mat::zeros(pic.size(), pic.type());
 	static vector<vector<Point>> vctvctPoint; // 保存n个多边形的点
 	static Point ptStart(-1, -1); // 初始化起点
 	static Point cur_pt(-1, -1); // 初始化临时节点
