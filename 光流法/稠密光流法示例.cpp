@@ -18,11 +18,12 @@ void on_mouse(int event, int x, int y, int flags, void* ustc);
 
 Mat frame_arr[2];
 Mat maskImage;
+bool history[5] = { false };
 
 int main()
 {
-	Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
-	Ptr<BackgroundSubtractorKNN> fgbg = createBackgroundSubtractorKNN();
+	//Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
+	//Ptr<BackgroundSubtractorKNN> fgbg = createBackgroundSubtractorKNN();
 
 	VideoPictrueGetter c("焦作视频马赛克.mp4");
 	PictureGetter& pg = c;
@@ -40,6 +41,7 @@ int main()
 
 	Mat direction_mask, magn_mask, final_mask;
 	pg >> frame_arr;
+	//maskImage = Mat::ones(frame_arr[0].size(), frame_arr[0].type());
 	/* 设置ROI */
 	makeMask(frame_arr[0]);
 
@@ -81,17 +83,34 @@ int main()
 		//imshow("current", next);
 		//bitwise_and(direction_mask, magn_mask, final_mask);
 		//frame2.setTo(Scalar(0,0,255), final_mask);
-
+		history[0] = false;
 		Mat res_img = frame_masked_arr[1].clone();
 		for (int i = 0; i < res_img.rows; i++) {
 			for (int j = 0; j < res_img.cols; j++) {
-				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magnitude.at<float>(i, j) > 0.55)
+				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magnitude.at<float>(i, j) > 0.5)
 				{
 					res_img.at<Vec3b>(i, j)[0] = bgr.at<Vec3b>(i, j)[0];
 					res_img.at<Vec3b>(i, j)[1] = bgr.at<Vec3b>(i, j)[1];
 					res_img.at<Vec3b>(i, j)[2] = bgr.at<Vec3b>(i, j)[2];
+					history[0] = true;
 				}
 			}
+		}
+
+		int count = history[0] ? 5 : 0;
+		for (int i = 4; i > 0; --i)
+		{
+			history[i] = history[i - 1];
+			if (history[i] == true) ++count;
+		}
+		if (count > 7)
+		{
+			putText(res_img, "!", Point(0, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 3);
+		}
+		else if (count > 5)
+		{
+			// 有运动
+			//putText(res_img, "?", Point(0, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 165, 255), 3);
 		}
 
 		imshow("result", res_img);
@@ -115,7 +134,7 @@ void makeMask(cv::Mat picture)
 void on_mouse(int event, int x, int y, int flags, void* ustc) // event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号    
 {
 	Mat& pic = *((Mat*)ustc);
-	maskImage = Mat::zeros(pic.size(), pic.type());
+	//maskImage = Mat::zeros(pic.size(), pic.type());
 	static vector<vector<Point>> vctvctPoint; // 保存n个多边形的点
 	static Point ptStart(-1, -1); // 初始化起点
 	static Point cur_pt(-1, -1); // 初始化临时节点
