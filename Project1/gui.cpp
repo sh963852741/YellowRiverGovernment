@@ -76,7 +76,13 @@ public:
 	void OnFinalMessage(HWND /*hWnd*/) { delete this; };
 
 	CPaintManagerUI m_pm;
+	CRichEditUI* pRich;
+	CEditUI* ip;
+	CEditUI* userName;
+	CEditUI* password;
+	CHorizontalLayoutUI* camWnd;
 	HWND hWndVedio = nullptr;
+	CHorizontalLayoutUI* drawWnd;
 	HWND hWndDraw = nullptr;
 	bool flag = false;
 	int camX = 790;
@@ -87,53 +93,13 @@ public:
 	cv::Mat imgDraw;
 	CWndUI* pUI;
 	CWndUI* pUI2;
-	CHorizontalLayoutUI* camWnd; //摄像窗口
-	CHorizontalLayoutUI* drawWnd; //检测灵敏度窗口
-	CRichEditUI* pRich; //报警信息 pRich->AppendText()
-	CEditUI* ip;  //ip ip->GetText()
-	CEditUI* userName;  //用户名 用法同上
-	CEditUI* password; //密码 用法同上
-	CSliderUI* slider; //灵敏度滑条 slider->GetValue()
-	CComboUI* algo_select; //算法选择 algo_select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "算法1") == 0)
-	CCheckBoxUI* if_inte_al; //开启智能算法 if_inte_al->IsSelected()，若要禁止修改则if_inte_al->SetEnabled(false);
-	CCheckBoxUI* if_up_warning; //上传报警信息 用法同上
-	CCheckBoxUI* if_alarm; //开启算法报警 用法同上
-	CCheckBoxUI* if_show_dyna;//显示动检结果 用法同上
-
-
+	
 
 	/* 摄像机初始化按钮 */
 	void camInit() {
 		//以下为测试组件代码，请修改为函数逻辑
-		
-		pRich->AppendText("初始化按钮点击\n");
-		pRich->AppendText(ip->GetText());
-		pRich->AppendText(userName->GetText());
-		pRich->AppendText(password->GetText());
-
-		char temp[64];
-		sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
-		pRich->AppendText(temp);
-
-		if(lstrcmp(algo_select->GetText(), "算法1") == 0)
-			sprintf_s(temp, "算法选择为:算法1\n");
-		else 
-			sprintf_s(temp, "算法选择为:算法2\n");
-		pRich->AppendText(temp);
-		
-		if (if_inte_al->IsSelected()) {
-			pRich->AppendText("开启智能算法被选中\n");
-		}
-		if (if_up_warning->IsSelected()) {
-			pRich->AppendText("上传报警信息被选中\n");
-		}
-		if (if_alarm->IsSelected()) {
-			pRich->AppendText("开启算法报警被选中\n");
-		}
-		if (if_show_dyna->IsSelected()) {
-			pRich->AppendText("显示动检结果被选中\n");
-		}
-		if_inte_al->SetEnabled(false);
+		updateDraw();
+		pRich->AppendText("初始化按钮被点击\n");
 		
 		
 	}
@@ -143,27 +109,21 @@ public:
 		
 		pRich->AppendText("播放画面按钮被点击\n");
 		
-		/* 请在这段函数下方生成要播放的img并imshow("cam",ifmg); */
+		/* 请在这段函数下方生成要播放的img并imshow("cam",img); */
 		imgCam = cv::imread("1.png", 1);
+		//imgCam.rows;
+		//cv::cv2CopyMakeBorder(imgCam, imgCam, 0 ,0, 0, 0,CV_HAL_BORDER_CONSTANT, value=[0,0,0]);
 		imshow("cam",imgCam);
-		
-		
-	}
-	/* 设置重设算法区域按钮  */
-	void setRegion() {
-		pRich->AppendText("设置、重设算法识别区域按钮被点击\n");
 	}
 
-
-	/* 更新draw图像 */
-	void updateDraw(int arr[]) {
+	void updateDraw() {
 		imgDraw.create(drawY, drawX, CV_8UC3);
 		imgDraw.setTo(cv::Scalar(255, 255, 255));
-		rectangle(imgDraw, cv::Point(20, 100 - arr[0]), cv::Point(40, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(50, 100 - arr[1]), cv::Point(70, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(80, 100 - arr[2]), cv::Point(100, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(110, 100 - arr[3]), cv::Point(130, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(140, 100 - arr[4]), cv::Point(160, drawY), cv::Scalar(200, 200, 100), -1);
+		rectangle(imgDraw, cv::Point(20, 50), cv::Point(40, drawY), cv::Scalar(200, 200, 100), -1);
+		rectangle(imgDraw, cv::Point(50, 100), cv::Point(70, drawY), cv::Scalar(200, 200, 100), -1);
+		rectangle(imgDraw, cv::Point(80, 100), cv::Point(100, drawY), cv::Scalar(200, 200, 100), -1);
+		rectangle(imgDraw, cv::Point(110, 100), cv::Point(130, drawY), cv::Scalar(200, 200, 100), -1);
+		rectangle(imgDraw, cv::Point(140, 100), cv::Point(160, drawY), cv::Scalar(200, 200, 100), -1);
 		imshow("draw", imgDraw);
 	}
 
@@ -178,18 +138,11 @@ public:
 			else if (msg.pSender->GetName() == _T("playBtn")) {
 				playVedio();
 			}
-			else if (msg.pSender->GetName() == _T("set_reset_region")) {
-				setRegion();
-			}
-			
 		}
-		if (msg.sType != _T("scroll")) {
-			pUI->SetPos(pUI->rc);
-			pUI2->SetPos(pUI2->rc);
-			imshow("cam", imgCam);
-			imshow("draw", imgDraw);
-		}
-		
+		pUI->SetPos(pUI->rc);
+		pUI2->SetPos(pUI2->rc);
+		imshow("cam", imgCam);
+		imshow("draw", imgDraw);
 
 	}
 	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -207,12 +160,6 @@ public:
 			password = static_cast<CEditUI*>(m_pm.FindControl(_T("password")));
 			camWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("camMedia")));
 			drawWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("draw")));
-			slider = static_cast<CSliderUI*>(m_pm.FindControl(_T("spec_controlor"))); 
-			algo_select = static_cast<CComboUI*>(m_pm.FindControl(_T("algo_select")));
-			if_inte_al = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_inte_al")));
-			if_up_warning = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_up_warning")));
-			if_alarm = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_alarm")));
-			if_show_dyna = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_show_dyna")));
 
 			pUI = new CWndUI(10,10,camX,camY);
 			camWnd->RemoveAll();
@@ -250,7 +197,6 @@ public:
 			imshow("draw", imgDraw);
 			imshow("cam", imgCam);
 
-			updateDraw(new int[]{60,20,80,40,20});
 			return 0;
 		}
 		else if (uMsg == WM_DESTROY) {
