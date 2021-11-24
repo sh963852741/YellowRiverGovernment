@@ -25,13 +25,13 @@ int main()
 	//Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
 	//Ptr<BackgroundSubtractorKNN> fgbg = createBackgroundSubtractorKNN();
 
-	VideoPictrueGetter c("焦作视频马赛克.mp4");
+	VideoPictrueGetter c("0705cut.mp4");
 	PictureGetter& pg = c;
 
 	/* 初始化视频读取和写入 */
 	//VideoCapture capture("大土坡.mp4");
 	VideoWriter wrt("res.mp4", VideoWriter::fourcc('H', '2', '6', '4'), 25,// capture.get(cv::CAP_PROP_FPS),
-		cv::Size(1024, 576));
+		cv::Size(1280, 720));
 	//cv::Size(capture.get(cv::CAP_PROP_FRAME_WIDTH), capture.get(cv::CAP_PROP_FRAME_HEIGHT)));
 //if (!capture.isOpened()) {
 //	//error in opening the video input
@@ -47,6 +47,10 @@ int main()
 
 	Mat frame_gray[2];
 	Mat frame_masked_arr[2];
+	// 一幅图像中运动的点的个数
+	int move_count = 0;
+	int i_sum = 0, j_sum = 0;
+	cv::Point history_center;
 	while (true) {
 
 		pg >> frame_arr;
@@ -85,6 +89,7 @@ int main()
 		//frame2.setTo(Scalar(0,0,255), final_mask);
 		history[0] = false;
 		Mat res_img = frame_masked_arr[1].clone();
+		/* 对于图片上的每个像素点 */
 		for (int i = 0; i < res_img.rows; i++) {
 			for (int j = 0; j < res_img.cols; j++) {
 				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magnitude.at<float>(i, j) > 0.5)
@@ -93,9 +98,13 @@ int main()
 					res_img.at<Vec3b>(i, j)[1] = bgr.at<Vec3b>(i, j)[1];
 					res_img.at<Vec3b>(i, j)[2] = bgr.at<Vec3b>(i, j)[2];
 					history[0] = true;
+					++move_count;
+					i_sum += i;
+					j_sum += j;
 				}
 			}
 		}
+		
 
 		int count = history[0] ? 5 : 0;
 		for (int i = 4; i > 0; --i)
@@ -112,6 +121,18 @@ int main()
 			// 有运动
 			//putText(res_img, "?", Point(0, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 165, 255), 3);
 		}
+
+		
+		if (move_count > 0)
+		{
+			cv::Point point(j_sum / move_count, i_sum / move_count);
+			if (abs(point.x - history_center.x) + abs(point.y - history_center.y) < 300)
+			{
+				cv::circle(res_img, point, 5, cv::Scalar(0, 0, 255), 2);
+			}
+			history_center = point;
+		}
+		i_sum = j_sum = move_count = 0;
 
 		imshow("result", res_img);
 		wrt << res_img;
