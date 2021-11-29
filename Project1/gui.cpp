@@ -1,11 +1,14 @@
 ﻿// Project1.cpp : 定义应用程序的入口点。
 //
-
-#include "gui.h"
+#ifndef gui
+#define gui
+#include "resource.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui_c.h>
 #include "framework.h"
 #include "Uilib.h"
+#include "OpticalFlowInterface.cpp"
+#include "VideoPictureGetter.cpp"
 
 
 using namespace DuiLib;
@@ -97,61 +100,73 @@ public:
 	CComboUI* algo_select; //算法选择 algo_select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "算法1") == 0)
 	CCheckBoxUI* if_inte_al; //开启智能算法 if_inte_al->IsSelected()，若要禁止修改则if_inte_al->SetEnabled(false);
 	CCheckBoxUI* if_up_warning; //上传报警信息 用法同上
-	CCheckBoxUI* if_alarm; //开启算法报警 用法同上
+	CCheckBoxUI* if_alarm; //开启算法报警 用法同上S
 	CCheckBoxUI* if_show_dyna;//显示动检结果 用法同上
+	PictureGetter* pg = NULL;
+	Mat frame_arr[2];
+	boolean isShowing = true;
 
 
 
 	/* 摄像机初始化按钮 */
 	void camInit() {
 		//以下为测试组件代码，请修改为函数逻辑
-		
-		pRich->AppendText("初始化按钮点击\n");
-		pRich->AppendText(ip->GetText());
-		pRich->AppendText(userName->GetText());
-		pRich->AppendText(password->GetText());
+		//static VideoPictrueGetter c(ip->GetText().GetData());
+		static VideoPictrueGetter c("1.MP4");
+		pg = &c;
 
-		char temp[64];
-		sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
-		pRich->AppendText(temp);
 
-		if(lstrcmp(algo_select->GetText(), "算法1") == 0)
-			sprintf_s(temp, "算法选择为:算法1\n");
-		else 
-			sprintf_s(temp, "算法选择为:算法2\n");
-		pRich->AppendText(temp);
-		
-		if (if_inte_al->IsSelected()) {
-			pRich->AppendText("开启智能算法被选中\n");
-		}
-		if (if_up_warning->IsSelected()) {
-			pRich->AppendText("上传报警信息被选中\n");
-		}
-		if (if_alarm->IsSelected()) {
-			pRich->AppendText("开启算法报警被选中\n");
-		}
-		if (if_show_dyna->IsSelected()) {
-			pRich->AppendText("显示动检结果被选中\n");
-		}
-		if_inte_al->SetEnabled(false);
-		
-		
+		//pRich->AppendText("初始化按钮点击\n");
+		//pRich->AppendText(ip->GetText());
+		//pRich->AppendText(userName->GetText());
+		//pRich->AppendText(password->GetText());
+
+		//char temp[64];
+		//sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
+		//pRich->AppendText(temp);
+
+		//if(lstrcmp(algo_select->GetText(), "算法1") == 0)
+		//	sprintf_s(temp, "算法选择为:算法1\n");
+		//else 
+		//	sprintf_s(temp, "算法选择为:算法2\n");
+		//pRich->AppendText(temp);
+		//
+		//if (if_inte_al->IsSelected()) {
+		//	pRich->AppendText("开启智能算法被选中\n");
+		//}
+		//if (if_up_warning->IsSelected()) {
+		//	pRich->AppendText("上传报警信息被选中\n");
+		//}
+		//if (if_alarm->IsSelected()) {
+		//	pRich->AppendText("开启算法报警被选中\n");
+		//}
+		//if (if_show_dyna->IsSelected()) {
+		//	pRich->AppendText("显示动检结果被选中\n");
+		//}
+		/*if_inte_al->SetEnabled(false);*/
 	}
 
 	/* 播放画面按钮 */
 	void playVedio() {
-		
-		pRich->AppendText("播放画面按钮被点击\n");
-		
-		/* 请在这段函数下方生成要播放的img并imshow("cam",ifmg); */
-		imgCam = cv::imread("1.png", 1);
-		imshow("cam",imgCam);
-		
+		if (pg == NULL) {
+			::MessageBox(NULL, _T("请先初始化相机"), _T("提示"), 0);;
+			return;
+		}
+
+
+		SetTimer(m_hWnd, 1, 300, NULL);
 		
 	}
 	/* 设置重设算法区域按钮  */
 	void setRegion() {
-		pRich->AppendText("设置、重设算法识别区域按钮被点击\n");
+		if (frame_arr[0].empty()) {
+			::MessageBox(NULL, _T("请先播放画面"), _T("提示"), 0);;
+			return;
+		}
+		::MessageBox(NULL, _T("请在选中区域后按任意键关闭两个窗口，不要点右上角关闭按钮"), _T("提示"), 0);;
+		isShowing = false;
+		makeMask(frame_arr[1]);
+		isShowing = true;
 	}
 
 
@@ -181,6 +196,9 @@ public:
 			else if (msg.pSender->GetName() == _T("set_reset_region")) {
 				setRegion();
 			}
+			else if (msg.pSender->GetName() == _T("if_inte_al")) {
+				pRich->AppendText("222");
+			}
 			
 		}
 		if (msg.sType != _T("scroll")) {
@@ -192,6 +210,38 @@ public:
 		
 
 	}
+
+	void updateFrame() {
+		if (!isShowing)
+			return;
+		*pg >> frame_arr;
+		if (if_inte_al->IsSelected())
+			opticalFlow(frame_arr);
+		else {
+			if (cv::getWindowProperty("result", WND_PROP_VISIBLE) == 1)
+				cv::destroyWindow("result");
+		}
+		int nCols = 578;
+		int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
+
+		Mat imgCam(nRows, nCols, frame_arr[1].type());
+
+		resize(frame_arr[1], imgCam, imgCam.size(), 0, 0, INTER_LINEAR);
+		imshow("cam", imgCam);
+	}
+
+
+	virtual LRESULT OnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		//如果是自己定义的计时器id时处理,因为同一个窗口可以定义很多个定时器
+		if (wParam == 1) {
+			updateFrame();
+		}
+		//下面设置为false,意思是消息继续传递不拦截,否则程序中有滚动条时因为这里拦截就会出现拖动失效的情况
+		bHandled = false;
+		return 0;
+	}
+
 	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		if (uMsg == WM_CREATE) {
@@ -247,8 +297,6 @@ public:
 			imgCam.create(camY, camX, CV_8UC3);
 			imgDraw.setTo(cv::Scalar(255, 255, 255));
 			imgCam.setTo(cv::Scalar(255,255, 255));
-			imshow("draw", imgDraw);
-			imshow("cam", imgCam);
 
 			updateDraw(new int[]{60,20,80,40,20});
 			return 0;
@@ -261,6 +309,10 @@ public:
 			return 0;
 		}
 		LRESULT lRes = 0;
+		BOOL bHandled = false;
+		if (uMsg == WM_TIMER) {
+			lRes = OnTimer(uMsg, wParam, lParam, bHandled);
+		}
 		if (m_pm.MessageHandler(uMsg, wParam, lParam, lRes)) return lRes;
 
 		return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
@@ -270,8 +322,6 @@ public:
 };
 
 
-
-// 程序入口及 Duilib 初始化部分
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR
 	/*lpCmdLine*/, int nCmdShow)
 {
@@ -282,10 +332,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR
 	if (pFrame == NULL) return 0;
 	pFrame->Create(NULL, _T("YREC边坡踏岸识别"), UI_WNDSTYLE_FRAME, WS_EX_WINDOWEDGE);
 	pFrame->ShowWindow(true);
-	CPaintManagerUI::MessageLoop();	
-	
+	CPaintManagerUI::MessageLoop();
 
 	return 0;
 }
 
 
+
+
+#endif
