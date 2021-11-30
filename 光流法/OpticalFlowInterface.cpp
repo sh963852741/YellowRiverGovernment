@@ -18,14 +18,12 @@
 
 void makeMask(cv::Mat picture);
 void on_mouse(int event, int x, int y, int flags, void* ustc);
-void opticalFlow(Mat* frame_arr);
+int opticalFlow(Mat* frame_arr, bool if_show_dyna);
 
 Mat maskImage;
 
-
 using namespace cv;
 using namespace std;
-
 
 
 int main() {
@@ -38,22 +36,23 @@ int main() {
 	makeMask(frame_arr[0]);
 	while (true) {
 		pg >> frame_arr;
-		opticalFlow(frame_arr);
+		opticalFlow(frame_arr, true);
 	}
 		
 }
 
-void opticalFlow(Mat* frame_arr)
+int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 {
 	static cv::Point history_center;
 	static bool history[5] = { false };
 	{
+		int error_level = 0;
 		int move_count = 0;
 		int i_sum = 0, j_sum = 0;
 		Mat frame_gray[2];
 		Mat frame_masked_arr[2];
 		
-		if (frame_arr[1].empty()) return;
+		if (frame_arr[1].empty()) return -1;
 
 		// 对图像进行掩膜操作
 		frame_arr[0].copyTo(frame_masked_arr[0], maskImage);
@@ -113,6 +112,7 @@ void opticalFlow(Mat* frame_arr)
 		}
 		if (count > 7)
 		{
+			error_level = 1;
 			putText(res_img, "!", Point(0, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 3);
 		}
 		else if (count > 5)
@@ -132,7 +132,8 @@ void opticalFlow(Mat* frame_arr)
 			history_center = point;
 		}
 
-		imshow("result", res_img);
+		imshow("识别结果", res_img);
+		return error_level;
 	}
 }
 
@@ -144,7 +145,7 @@ void makeMask(cv::Mat picture)
 	cv::imshow("设置选定区域", picture);
 	cv::waitKey(0);
 	cv::setMouseCallback("设置选定区域", NULL, 0); // 解除回调函数
-	if (cv::getWindowProperty("ROI", WND_PROP_VISIBLE) == 1)
+	if (cv::getWindowProperty("设置选定区域", WND_PROP_VISIBLE) == 1)
 		cv::destroyWindow("设置选定区域");
 	if (cv::getWindowProperty("ROI", WND_PROP_VISIBLE) == 1)
 		cv::destroyWindow("ROI");

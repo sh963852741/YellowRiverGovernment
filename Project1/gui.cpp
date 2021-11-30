@@ -100,11 +100,12 @@ public:
 	CComboUI* algo_select; //算法选择 algo_select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "算法1") == 0)
 	CCheckBoxUI* if_inte_al; //开启智能算法 if_inte_al->IsSelected()，若要禁止修改则if_inte_al->SetEnabled(false);
 	CCheckBoxUI* if_up_warning; //上传报警信息 用法同上
-	CCheckBoxUI* if_alarm; //开启算法报警 用法同上S
+	CCheckBoxUI* if_alarm; //开启算法报警 用法同上
 	CCheckBoxUI* if_show_dyna;//显示动检结果 用法同上
 	PictureGetter* pg = NULL;
 	Mat frame_arr[2];
 	boolean isShowing = true;
+	bool seted_rigion = false;
 
 
 
@@ -113,37 +114,45 @@ public:
 		//以下为测试组件代码，请修改为函数逻辑
 		//static VideoPictrueGetter c(ip->GetText().GetData());
 		static VideoPictrueGetter c("1.MP4");
+		c = VideoPictrueGetter("1.MP4");
 		pg = &c;
 
+		seted_rigion = false;
+		slider->SetEnabled(true);
+		algo_select->SetEnabled(true);
+		if_up_warning->SetEnabled(true);
+		if_alarm->SetEnabled(true);
+		if_show_dyna->SetEnabled(true);
+		if_inte_al->SetEnabled(true);
+		
+		pRich->AppendText("初始化按钮点击\n");
+		pRich->AppendText(ip->GetText());
+		pRich->AppendText(userName->GetText());
+		pRich->AppendText(password->GetText());
 
-		//pRich->AppendText("初始化按钮点击\n");
-		//pRich->AppendText(ip->GetText());
-		//pRich->AppendText(userName->GetText());
-		//pRich->AppendText(password->GetText());
+		char temp[64];
+		sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
+		pRich->AppendText(temp);
 
-		//char temp[64];
-		//sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
-		//pRich->AppendText(temp);
+		if(lstrcmp(algo_select->GetText(), "算法1") == 0)
+			sprintf_s(temp, "算法选择为:算法1\n");
+		else 
+			sprintf_s(temp, "算法选择为:算法2\n");
+		pRich->AppendText(temp);
+		
+		if (if_inte_al->IsSelected()) {
+			pRich->AppendText("开启智能算法被选中\n");
+		}
+		if (if_up_warning->IsSelected()) {
+			pRich->AppendText("上传报警信息被选中\n");
+		}
+		if (if_alarm->IsSelected()) {
+			pRich->AppendText("开启算法报警被选中\n");
+		}
+		if (if_show_dyna->IsSelected()) {
+			pRich->AppendText("显示动检结果被选中\n");
+		}
 
-		//if(lstrcmp(algo_select->GetText(), "算法1") == 0)
-		//	sprintf_s(temp, "算法选择为:算法1\n");
-		//else 
-		//	sprintf_s(temp, "算法选择为:算法2\n");
-		//pRich->AppendText(temp);
-		//
-		//if (if_inte_al->IsSelected()) {
-		//	pRich->AppendText("开启智能算法被选中\n");
-		//}
-		//if (if_up_warning->IsSelected()) {
-		//	pRich->AppendText("上传报警信息被选中\n");
-		//}
-		//if (if_alarm->IsSelected()) {
-		//	pRich->AppendText("开启算法报警被选中\n");
-		//}
-		//if (if_show_dyna->IsSelected()) {
-		//	pRich->AppendText("显示动检结果被选中\n");
-		//}
-		/*if_inte_al->SetEnabled(false);*/
 	}
 
 	/* 播放画面按钮 */
@@ -153,12 +162,13 @@ public:
 			return;
 		}
 
-
-		SetTimer(m_hWnd, 1, 300, NULL);
+		updateFrame();
+		SetTimer(m_hWnd, 1, 200, NULL);
 		
 	}
 	/* 设置重设算法区域按钮  */
 	void setRegion() {
+		seted_rigion = true;
 		if (frame_arr[0].empty()) {
 			::MessageBox(NULL, _T("请先播放画面"), _T("提示"), 0);;
 			return;
@@ -182,6 +192,19 @@ public:
 		imshow("draw", imgDraw);
 	}
 
+	/* 开启智能算法 */
+	void click_inte_al() { 
+		bool canConfig = if_inte_al->IsSelected();
+		ip->SetEnabled(canConfig);
+		userName->SetEnabled(canConfig);
+		password->SetEnabled(canConfig);
+		slider->SetEnabled(canConfig);
+		algo_select->SetEnabled(canConfig);
+		if_up_warning->SetEnabled(canConfig);
+		if_alarm->SetEnabled(canConfig);
+		if_show_dyna->SetEnabled(canConfig);
+	}
+
 	void Notify(TNotifyUI& msg)
 	{
 
@@ -197,7 +220,7 @@ public:
 				setRegion();
 			}
 			else if (msg.pSender->GetName() == _T("if_inte_al")) {
-				pRich->AppendText("222");
+				click_inte_al();
 			}
 			
 		}
@@ -207,7 +230,6 @@ public:
 			imshow("cam", imgCam);
 			imshow("draw", imgDraw);
 		}
-		
 
 	}
 
@@ -215,16 +237,19 @@ public:
 		if (!isShowing)
 			return;
 		*pg >> frame_arr;
-		if (if_inte_al->IsSelected())
-			opticalFlow(frame_arr);
+		if (if_inte_al->IsSelected()) { //开启智能算法
+			opticalFlow(frame_arr, if_show_dyna->IsSelected());
+		}
 		else {
-			if (cv::getWindowProperty("result", WND_PROP_VISIBLE) == 1)
-				cv::destroyWindow("result");
+			if (cv::getWindowProperty("识别结果", WND_PROP_VISIBLE) == 1)
+				cv::destroyWindow("识别结果");
+			if (cv::getWindowProperty("动检结果", WND_PROP_VISIBLE) == 1)
+				cv::destroyWindow("动检结果");
 		}
 		int nCols = 578;
 		int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
 
-		Mat imgCam(nRows, nCols, frame_arr[1].type());
+		imgCam = Mat(nRows, nCols, frame_arr[1].type());
 
 		resize(frame_arr[1], imgCam, imgCam.size(), 0, 0, INTER_LINEAR);
 		imshow("cam", imgCam);
@@ -263,7 +288,12 @@ public:
 			if_up_warning = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_up_warning")));
 			if_alarm = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_alarm")));
 			if_show_dyna = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_show_dyna")));
-
+			slider->SetEnabled(false);
+			algo_select->SetEnabled(false);
+			if_up_warning->SetEnabled(false);
+			if_alarm->SetEnabled(false);
+			if_show_dyna->SetEnabled(false);
+			if_inte_al->SetEnabled(false);
 			pUI = new CWndUI(10,10,camX,camY);
 			camWnd->RemoveAll();
 			camWnd->Add(pUI);
