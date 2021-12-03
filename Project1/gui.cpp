@@ -13,7 +13,8 @@
 #include "OpticalFlowInterface.cpp"
 #include "CameraPictureGetter.cpp"
 #include "CameraController.cpp"
-
+#include <stdio.h>
+#include <time.h>
 
 using namespace DuiLib;
 
@@ -100,15 +101,17 @@ public:
 	CEditUI* ip;  //ip ip->GetText()
 	CEditUI* userName;  //用户名 用法同上
 	CEditUI* password; //密码 用法同上
+	CEditUI* degree1;  //角度值1
+	CEditUI* degree2;  //角度值2
 	CSliderUI* slider; //灵敏度滑条 slider->GetValue()
-	CComboUI* algo_select; //算法选择 algo_select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "算法1") == 0)
+	CComboUI* selector; //算法选择 select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "绝对灵敏度") == 0)
 	CCheckBoxUI* if_inte_al; //开启智能算法 if_inte_al->IsSelected()，若要禁止修改则if_inte_al->SetEnabled(false);
 	CCheckBoxUI* if_up_warning; //上传报警信息 用法同上
 	CCheckBoxUI* if_alarm; //开启算法报警 用法同上
 	CCheckBoxUI* if_show_dyna;//显示动检结果 用法同上
 	Mat frame_arr[2];
 	boolean isShowing = true;
-	CameraPictureGetter pg;
+	CameraPictureGetter* pg = NULL;
 
 	/*
 	172.16.19.213
@@ -117,23 +120,21 @@ public:
 	*/
 	/* 摄像机初始化按钮 */
 	void camInit() {
+		pg = new CameraPictureGetter();
 		char tempIp[32];
 		char tempUserName[64];
 		char tempPassword[64];
 		sprintf_s(tempIp, "%s", ip->GetText().GetData());
 		sprintf_s(tempUserName, "%s", userName->GetText().GetData());
 		sprintf_s(tempPassword, "%s", password->GetText().GetData());
-		if (!pg.CameraPictureGetterInit(tempIp, tempUserName, tempPassword)) {
+		if (!pg->CameraPictureGetterInit(tempIp, tempUserName, tempPassword)) {
 			::MessageBox(NULL, _T("初始化相机失败"), _T("提示"), 0);;
+			return;
 		}
-		else {
-			::MessageBox(NULL, _T("初始化相机成功"), _T("提示"), 0);;
-		}
-
-
+		::MessageBox(NULL, _T("初始化相机成功"), _T("提示"), 0);
 		if_inte_al->SetEnabled(false);
 		slider->SetEnabled(true);
-		algo_select->SetEnabled(true);
+		selector->SetEnabled(true);
 		if_up_warning->SetEnabled(true);
 		if_alarm->SetEnabled(true);
 		if_show_dyna->SetEnabled(true);
@@ -154,7 +155,7 @@ public:
 
 	/* 播放画面按钮 */
 	void playVedio() {
-		if (!pg.netSKD_inited()) {
+		if (!pg->netSKD_inited()) {
 			::MessageBox(NULL, _T("请先初始化相机"), _T("提示"), 0);;
 			return;
 		}
@@ -163,6 +164,7 @@ public:
 
 	/* 设置重设算法区域按钮  */
 	void setRegion() {
+		if (if_inte_al->IsSelected()) return;
 		if_inte_al->SetEnabled(true);
 		if (frame_arr[0].empty()) {
 			::MessageBox(NULL, _T("请先播放画面"), _T("提示"), 0);;
@@ -195,7 +197,7 @@ public:
 		userName->SetEnabled(canConfig);
 		password->SetEnabled(canConfig);
 		slider->SetEnabled(canConfig);
-		algo_select->SetEnabled(canConfig);
+		selector->SetEnabled(canConfig);
 		if_up_warning->SetEnabled(canConfig);
 		if_alarm->SetEnabled(canConfig);
 		if_show_dyna->SetEnabled(canConfig);
@@ -232,12 +234,26 @@ public:
 	void updateFrame() {
 		if (!isShowing)
 			return;
-		pg >> frame_arr;
+		*pg >> frame_arr;
 		if (frame_arr[0].empty()) {
 			return;
 		}
 		if (if_inte_al->IsSelected()) { //开启智能算法
-			opticalFlow(frame_arr, if_show_dyna->IsSelected());
+			bool whichAl = (lstrcmp(selector->GetText(), "绝对灵敏度") == 0);
+			
+				
+			int d1 = _ttoi(degree1->GetText().GetData());
+			int d2 = _ttoi(degree2->GetText().GetData());
+			int err_level = opticalFlow(frame_arr, if_show_dyna->IsSelected(), if_up_warning->IsSelected(), whichAl, slider->GetValue(), d1, d2);
+			if (err_level > 0) {
+				time_t t;
+				struct tm* lt = new tm();
+				time(&t);//获取Unix时间戳。    
+				localtime_s(lt, &t);//转为时间结构。
+				char timeStr[100];
+				sprintf_s(timeStr, "%d-%d-%d %d:%d:%d\n", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+				pRich->AppendText(timeStr);
+			}
 		}
 		else {
 			if (cv::getWindowProperty("识别结果", WND_PROP_VISIBLE) == 1)
@@ -277,16 +293,18 @@ public:
 			ip = static_cast<CEditUI*>(m_pm.FindControl(_T("ip")));
 			userName = static_cast<CEditUI*>(m_pm.FindControl(_T("userName")));
 			password = static_cast<CEditUI*>(m_pm.FindControl(_T("password")));
+			degree1 = static_cast<CEditUI*>(m_pm.FindControl(_T("degree1")));
+			degree2 = static_cast<CEditUI*>(m_pm.FindControl(_T("degree2")));
 			camWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("camMedia")));
 			//drawWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("draw")));
 			slider = static_cast<CSliderUI*>(m_pm.FindControl(_T("spec_controlor"))); 
-			algo_select = static_cast<CComboUI*>(m_pm.FindControl(_T("algo_select")));
+			selector = static_cast<CComboUI*>(m_pm.FindControl(_T("algo_select")));
 			if_inte_al = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_inte_al")));
 			if_up_warning = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_up_warning")));
 			if_alarm = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_alarm")));
 			if_show_dyna = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_show_dyna")));
 			slider->SetEnabled(false);
-			algo_select->SetEnabled(false);
+			selector->SetEnabled(false);
 			if_up_warning->SetEnabled(false);
 			if_alarm->SetEnabled(false);
 			if_show_dyna->SetEnabled(false);

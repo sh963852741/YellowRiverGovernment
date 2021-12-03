@@ -8,7 +8,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
-
+#include <fstream>
 #include <thread>
 
 #include "CameraPictureGetter.h"
@@ -18,9 +18,13 @@
 
 void makeMask(cv::Mat picture);
 void on_mouse(int event, int x, int y, int flags, void* ustc);
-int opticalFlow(Mat* frame_arr, bool if_show_dyna);
+int opticalFlow(Mat* frame_arr, bool if_show_dyna, bool if_save_warning, bool use_magnitude, int sensitivity, int degree1, int degree2);
 
 Mat maskImage;
+vector<vector<Point>> vctvctPoint; // 保存n个多边形的点
+Point ptStart(-1, -1); // 初始化起点
+Point cur_pt(-1, -1); // 初始化临时节点
+vector<Point> vctPoint; // 路径点集合
 
 using namespace cv;
 using namespace std;
@@ -39,15 +43,17 @@ int main() {
 	makeMask(frame_arr[0]);
 	while (true) {
 		pg >> frame_arr;
-		opticalFlow(frame_arr, true);
+		opticalFlow(frame_arr, true, true, true, 80, 0, 180);
 	}
 		
 }
 
-int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
+int opticalFlow(Mat* frame_arr, bool if_show_dyna, bool if_save_warning, bool use_magnitude, int sensitivity, int degree1, int degree2) //是否显示动检结果
 {
 	static cv::Point history_center;
 	static bool history[5] = { false };
+	static time_t last_warning;
+
 	{
 		int error_level = 0;
 		int move_count = 0;
@@ -93,7 +99,14 @@ int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 		/* 对于图片上的每个像素点 */
 		for (int i = 0; i < res_img.rows; i++) {
 			for (int j = 0; j < res_img.cols; j++) {
-				if (angle.at<float>(i, j) < 90.f / 255.f && angle.at<float>(i, j) > 0 && magnitude.at<float>(i, j) > 0.5)
+				bool temp = false;
+				if (use_magnitude) {
+					temp = magnitude.at<float>(i, j) > (float)sensitivity / 50.f;
+				}
+				else {
+					temp = magn_norm.at<float>(i, j) > (float)sensitivity / 100.f;
+				}
+				if (angle.at<float>(i, j) < (float)degree2 / 255.f && angle.at<float>(i, j) > (float)degree1 / 255.f && temp)
 				{
 					res_img.at<Vec3b>(i, j)[0] = bgr.at<Vec3b>(i, j)[0];
 					res_img.at<Vec3b>(i, j)[1] = bgr.at<Vec3b>(i, j)[1];
@@ -115,8 +128,13 @@ int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 		}
 		if (count > 7)
 		{
-			error_level = 1;
 			putText(res_img, "!", Point(0, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 3);
+			time_t t;
+			time(&t);//获取Unix时间戳。
+			if (t - last_warning > 10) { // 10s内只报警一次
+				error_level = 1;
+				time(&last_warning);
+			}
 		}
 		else if (count > 5)
 		{
@@ -134,11 +152,29 @@ int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 			}
 			history_center = point;
 		}
-		int nCols = 600;
-		int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
-		Mat show_res = Mat(nRows, nCols, frame_arr[1].type());
-		resize(res_img, show_res, show_res.size(), 0, 0, INTER_LINEAR);
-		imshow("识别结果", show_res);
+		if (if_save_warning && error_level > 0) //保存报警信息
+		{
+			ofstream outfile("../报警日志.txt", ios::app);
+			struct tm* lt = new tm();
+			localtime_s(lt, &last_warning);//转为时间结构。
+			char tempStr[100];
+			sprintf_s(tempStr, "%d-%d-%d %d:%d:%d\n", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+			outfile << tempStr;
+
+			sprintf_s(tempStr, "../log picture/%d %d %d %d %d %d(1).jpg", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+			cv::imwrite(tempStr, frame_arr[0]);
+			sprintf_s(tempStr, "../log picture/%d %d %d %d %d %d(2).jpg", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+			cv::imwrite(tempStr, frame_arr[1]);
+			sprintf_s(tempStr, "../log picture/%d %d %d %d %d %d(3).jpg", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+			cv::imwrite(tempStr, res_img);
+		}
+		if(if_show_dyna) {
+			int nCols = 600;
+			int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
+			Mat show_res = Mat(nRows, nCols, frame_arr[1].type());
+			resize(res_img, show_res, show_res.size(), 0, 0, INTER_LINEAR);
+			imshow("识别结果", show_res);
+		}
 		return error_level;
 	}
 }
@@ -146,6 +182,9 @@ int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 
 void makeMask(cv::Mat picture)
 {
+	maskImage = Mat();
+	vctvctPoint.clear(); //没有释放空间，以后愿意改再改吧
+	vctPoint.clear();  //没有释放空间，以后愿意改再改吧
 	cv::namedWindow("设置选定区域");
 	cv::setMouseCallback("设置选定区域", on_mouse, &picture); // 调用回调函数    
 	cv::imshow("设置选定区域", picture);
@@ -161,10 +200,6 @@ void on_mouse(int event, int x, int y, int flags, void* ustc) // event鼠标事件代
 {
 	Mat& pic = *((Mat*)ustc);
 	//maskImage = Mat::zeros(pic.size(), pic.type());
-	static vector<vector<Point>> vctvctPoint; // 保存n个多边形的点
-	static Point ptStart(-1, -1); // 初始化起点
-	static Point cur_pt(-1, -1); // 初始化临时节点
-	static vector<Point> vctPoint; // 路径点集合
 	if (event == EVENT_LBUTTONDOWN)
 	{
 		ptStart = Point(x, y);

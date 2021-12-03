@@ -31,11 +31,19 @@
 						<Button name="playBtn"  bordercolor="0xff888888" bordersize="1" text="播放画面"    borderround="5,5" />
 					</VerticalLayout >
 				</HorizontalLayout >
-				<HorizontalLayout  width="200" >
+				<HorizontalLayout  width="220" >
 					<Text text="智能算法设置"   float="true" pos="0,0,80,26" />
-					<Text text="检测灵敏度"  align="center" float="true" pos="0,20,180,40" />
-					<HorizontalLayout name="draw" float="true" pos="0,40,180,160" />
-					<Slider   float="true" pos="185,40,195,160" name="spec_controlor" hor="false"  min="0" max="100" value="50"/>
+					<Text text="角度值1" float="true" pos="0,30,80,50" />
+					<Edit name="degree1" bordercolor="0xff33a3dc"  float="true" pos="0,52,80,70" bordersize="1" padding="0,0,0,12"  text="0" borderround="5,5" />
+					<Text text="角度值2" float="true" pos="0,80,80,100" />
+					<Edit name="degree2" bordercolor="0xff33a3dc"  float="true" pos="0,102,80,120" bordersize="1" padding="0,0,0,12"  text="360" borderround="5,5" />
+					<Text text="检测灵敏度"   float="true" pos="142,30,220,50" />
+					<Slider name="spec_controlor" float="true" pos="170,50,180,150" hor="false"  min="0" max="100" value="80"/>
+					<Text float="true"  pos="0,134,80,150"  text="灵敏度选项:"  />
+					<Combo name="algo_select" float="true" pos="80,130,150,150" bkcolor="0xffffffff" >
+						<ListLabelElement text="绝对灵敏度" selected="true" />
+						<ListLabelElement text="相对灵敏度" />
+					</Combo>
 				
 				</HorizontalLayout >
 				<HorizontalLayout   >
@@ -43,12 +51,7 @@
 					<CheckBox name="if_up_warning" float="true" pos="160,42,280,60" text="上传报警信息"  />
 					<CheckBox name="if_alarm" float="true" pos="30,72,150,90" text="开启算法报警"  />
 					<CheckBox name="if_show_dyna" float="true" pos="160,72,280,90" text="显示动检结果"  />
-					<Text float="true"  pos="30,105,120,120"  text="系统算法选项:"  />
-					<Combo name="algo_select" float="true" pos="130,102,260,120" bkcolor="0xffffffff"     >
-						<ListLabelElement text="算法1" selected="true" />
-						<ListLabelElement text="算法2" />
-					</Combo>
-					<Button name="set_reset_region" float="true" pos="60,130,220,148"  bordercolor="0xff888888" bordersize="1" text="设置/重设 算法识别区域"    borderround="5,5" />
+					<Button name="set_reset_region" float="true" pos="60,110,220,128"  bordercolor="0xff888888" bordersize="1" text="设置/重设 算法识别区域"    borderround="5,5" />
 				</HorizontalLayout >		
 			</HorizontalLayout>
 		</VerticalLayout>
