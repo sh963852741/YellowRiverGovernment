@@ -27,12 +27,15 @@ using namespace std;
 
 
 int main() {
-	VideoPictrueGetter c("1.mp4");
+	CameraPictureGetter c;
 	PictureGetter& pg = c;
 	Mat frame_arr[2];
-	
 	pg >> frame_arr;
-	/* 设置ROI */
+	while (frame_arr[0].empty()) {
+		Sleep(3000);
+		pg >> frame_arr;
+	}
+		/* 设置ROI */
 	makeMask(frame_arr[0]);
 	while (true) {
 		pg >> frame_arr;
@@ -131,8 +134,11 @@ int opticalFlow(Mat* frame_arr, bool if_show_dyna) //是否显示动检结果
 			}
 			history_center = point;
 		}
-
-		imshow("识别结果", res_img);
+		int nCols = 600;
+		int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
+		Mat show_res = Mat(nRows, nCols, frame_arr[1].type());
+		resize(res_img, show_res, show_res.size(), 0, 0, INTER_LINEAR);
+		imshow("识别结果", show_res);
 		return error_level;
 	}
 }

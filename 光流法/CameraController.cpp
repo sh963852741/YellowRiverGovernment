@@ -8,6 +8,7 @@ bool CameraController::initializeSDK(fDisConnect disconnectCallback, LDWORD user
 		return false;
 	}
     bool is_netSKD_inited = CLIENT_Init(disconnectCallback, (LDWORD)user);
+	has_sdk_been_initialized = is_netSKD_inited;
     return is_netSKD_inited;
 }
 
@@ -38,7 +39,6 @@ LLONG CameraController::connect(char device_ip[32], char username[64], char pass
 	{
 		NET_OUT_LOGIN_WITH_HIGHLEVEL_SECURITY stOutparam;
 		login_handle = CLIENT_LoginWithHighLevelSecurity(&stInparam, &stOutparam);
-
 		if (login_handle == 0)
 		{
 			// 根据错误码，可以在 dhnetsdk.h 中找到相应的解释，此处打印的是 16 进制，头文件中是十进制，其中的转换需注意

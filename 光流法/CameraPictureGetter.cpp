@@ -3,6 +3,11 @@
 #include <iostream>
 #include <string>
 
+
+bool CameraPictureGetter::netSKD_inited() {
+	return is_netSKD_inited;
+}
+
 // 设备断线回调函数
 void CALLBACK DisConnectFunc(LLONG lLoginID, char* pchDVRIP, LONG nDVRPort, LDWORD dwUser)
 {
@@ -52,17 +57,22 @@ PictureGetter& CameraPictureGetter::operator>>(cv::Mat image[2])
 	return *this;
 }
 
-CameraPictureGetter::CameraPictureGetter(CameraController controller)
+bool CameraPictureGetter::CameraPictureGetterInit(char device_ip[32], char username[64], char password[64])
 {
-	this->controller = controller;
+	controller.initializeSDK(DisConnectFunc);
+	DWORD err;
+	if (controller.connect(device_ip, username, password, err) == 0) {
+		return false;
+	}
+	is_netSKD_inited = true;
 	chache_size_semaphore = CreateSemaphore(NULL          //信号量的安全特性
 		, 0            //设置信号量的初始计数。可设置零到最大值之间的一个值
 		, MAXINT            //设置信号量的最大计数
 		, NULL         //指定信号量对象的名称
 	);
 	chache_space_semaphore = CreateSemaphore(NULL, MAX_CHCAHE_LEN, MAXINT, NULL);
-
 	th = thread(std::mem_fn(&CameraPictureGetter::chachePicture), this);
+	return true;
 }
 
 CameraPictureGetter::~CameraPictureGetter()
