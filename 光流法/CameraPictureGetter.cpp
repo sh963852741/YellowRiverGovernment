@@ -55,6 +55,9 @@ PictureGetter& CameraPictureGetter::operator>>(cv::Mat image[2])
 CameraPictureGetter::CameraPictureGetter(CameraController controller)
 {
 	this->controller = controller;
+	controller.initializeSDK(DisConnectFunc);
+	DWORD err;
+	controller.connect(this->device_ip, this->username, this->password, err);
 	chache_size_semaphore = CreateSemaphore(NULL          //信号量的安全特性
 		, 0            //设置信号量的初始计数。可设置零到最大值之间的一个值
 		, MAXINT            //设置信号量的最大计数

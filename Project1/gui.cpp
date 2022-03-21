@@ -7,8 +7,8 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "framework.h"
 #include "Uilib.h"
-#include "OpticalFlowInterface.cpp"
-#include "VideoPictureGetter.cpp"
+#include "../光流法/OpticalFlowInterface.cpp"
+#include "../光流法/VideoPictureGetter.cpp"
 
 
 using namespace DuiLib;

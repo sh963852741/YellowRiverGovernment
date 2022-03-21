@@ -24,8 +24,9 @@ int main()
 {
 	//Mat kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
 	//Ptr<BackgroundSubtractorKNN> fgbg = createBackgroundSubtractorKNN();
-
-	VideoPictrueGetter c("0705cut.mp4");
+	CameraController cc;
+	CameraPictureGetter c(cc);
+	//VideoPictrueGetter c("0705cut.mp4");
 	PictureGetter& pg = c;
 
 	/* 初始化视频读取和写入 */

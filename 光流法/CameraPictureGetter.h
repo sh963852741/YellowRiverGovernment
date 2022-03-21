@@ -16,7 +16,7 @@ using namespace cv;
 
 const unsigned char MAX_CHCAHE_LEN = 2;
 
-class CameraPictureGetter: PictureGetter
+class CameraPictureGetter: public PictureGetter
 {
 public:
 	// 将图片存入队列
