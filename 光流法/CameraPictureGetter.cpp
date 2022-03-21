@@ -3,7 +3,12 @@
 #include <iostream>
 #include <string>
 
-// Éè±¸¶ÏÏß»Øµ÷º¯Êý
+
+bool CameraPictureGetter::netSKD_inited() {
+	return is_netSKD_inited;
+}
+
+// ï¿½è±¸ï¿½ï¿½ï¿½ß»Øµï¿½ï¿½ï¿½ï¿½ï¿½
 void CALLBACK DisConnectFunc(LLONG lLoginID, char* pchDVRIP, LONG nDVRPort, LDWORD dwUser)
 {
 	printf("Call DisConnectFunc\n");
@@ -32,7 +37,7 @@ void CameraPictureGetter::chachePicture()
 		ReleaseSemaphore(chache_size_semaphore, 1, NULL);
 	}
 	return;
-	/* ±£´æÔ­Ê¼Í¼Æ¬ÎÄ¼þ*/
+	/* ï¿½ï¿½ï¿½ï¿½Ô­Ê¼Í¼Æ¬ï¿½Ä¼ï¿½*/
 	//const char* pFileName = "123.jpg";
 	//FILE* stream;
 	//if (fopen_s(&stream, pFileName, "wb") == 0)
@@ -52,20 +57,22 @@ PictureGetter& CameraPictureGetter::operator>>(cv::Mat image[2])
 	return *this;
 }
 
-CameraPictureGetter::CameraPictureGetter(CameraController controller)
+bool CameraPictureGetter::CameraPictureGetterInit(char device_ip[32], char username[64], char password[64])
 {
-	this->controller = controller;
 	controller.initializeSDK(DisConnectFunc);
 	DWORD err;
-	controller.connect(this->device_ip, this->username, this->password, err);
-	chache_size_semaphore = CreateSemaphore(NULL          //ÐÅºÅÁ¿µÄ°²È«ÌØÐÔ
-		, 0            //ÉèÖÃÐÅºÅÁ¿µÄ³õÊ¼¼ÆÊý¡£¿ÉÉèÖÃÁãµ½×î´óÖµÖ®¼äµÄÒ»¸öÖµ
-		, MAXINT            //ÉèÖÃÐÅºÅÁ¿µÄ×î´ó¼ÆÊý
-		, NULL         //Ö¸¶¨ÐÅºÅÁ¿¶ÔÏóµÄÃû³Æ
+	if (controller.connect(device_ip, username, password, err) == 0) {
+		return false;
+	}
+	is_netSKD_inited = true;
+	chache_size_semaphore = CreateSemaphore(NULL          //ï¿½Åºï¿½ï¿½ï¿½ï¿½Ä°ï¿½È«ï¿½ï¿½ï¿½ï¿½
+		, 0            //ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½Ä³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ãµ½ï¿½ï¿½ï¿½ÖµÖ®ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Öµ
+		, MAXINT            //ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		, NULL         //Ö¸ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	);
 	chache_space_semaphore = CreateSemaphore(NULL, MAX_CHCAHE_LEN, MAXINT, NULL);
-
 	th = thread(std::mem_fn(&CameraPictureGetter::chachePicture), this);
+	return true;
 }
 
 CameraPictureGetter::~CameraPictureGetter()

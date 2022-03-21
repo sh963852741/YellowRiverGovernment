@@ -7,9 +7,14 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "framework.h"
 #include "Uilib.h"
-#include "../光流法/OpticalFlowInterface.cpp"
-#include "../光流法/VideoPictureGetter.cpp"
-
+#include <dhnetsdk.h>
+#include <avglobal.h>
+#include <dhconfigsdk.h>
+#include "OpticalFlowInterface.cpp"
+#include "CameraPictureGetter.cpp"
+#include "CameraController.cpp"
+#include <stdio.h>
+#include <time.h>
 
 using namespace DuiLib;
 
@@ -89,86 +94,78 @@ public:
 	cv::Mat imgCam;
 	cv::Mat imgDraw;
 	CWndUI* pUI;
-	CWndUI* pUI2;
+	//CWndUI* pUI2;
 	CHorizontalLayoutUI* camWnd; //摄像窗口
-	CHorizontalLayoutUI* drawWnd; //检测灵敏度窗口
+	//CHorizontalLayoutUI* drawWnd; //检测灵敏度窗口
 	CRichEditUI* pRich; //报警信息 pRich->AppendText()
 	CEditUI* ip;  //ip ip->GetText()
 	CEditUI* userName;  //用户名 用法同上
 	CEditUI* password; //密码 用法同上
+	CEditUI* degree1;  //角度值1
+	CEditUI* degree2;  //角度值2
 	CSliderUI* slider; //灵敏度滑条 slider->GetValue()
-	CComboUI* algo_select; //算法选择 algo_select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "算法1") == 0)
+	CComboUI* selector; //算法选择 select->GetText(),用lstrcpm比较,如if(lstrcmp(algo_select->GetText(), "绝对灵敏度") == 0)
 	CCheckBoxUI* if_inte_al; //开启智能算法 if_inte_al->IsSelected()，若要禁止修改则if_inte_al->SetEnabled(false);
 	CCheckBoxUI* if_up_warning; //上传报警信息 用法同上
 	CCheckBoxUI* if_alarm; //开启算法报警 用法同上
 	CCheckBoxUI* if_show_dyna;//显示动检结果 用法同上
-	PictureGetter* pg = NULL;
 	Mat frame_arr[2];
 	boolean isShowing = true;
-	bool seted_rigion = false;
+	CameraPictureGetter* pg = NULL;
 
-
-
+	/*
+	172.16.19.213
+	admin
+	IO0n2a4G
+	*/
 	/* 摄像机初始化按钮 */
 	void camInit() {
-		//以下为测试组件代码，请修改为函数逻辑
-		//static VideoPictrueGetter c(ip->GetText().GetData());
-		static VideoPictrueGetter c("1.MP4");
-		c = VideoPictrueGetter("1.MP4");
-		pg = &c;
-
-		seted_rigion = false;
+		pg = new CameraPictureGetter();
+		char tempIp[32];
+		char tempUserName[64];
+		char tempPassword[64];
+		sprintf_s(tempIp, "%s", ip->GetText().GetData());
+		sprintf_s(tempUserName, "%s", userName->GetText().GetData());
+		sprintf_s(tempPassword, "%s", password->GetText().GetData());
+		if (!pg->CameraPictureGetterInit(tempIp, tempUserName, tempPassword)) {
+			::MessageBox(NULL, _T("初始化相机失败"), _T("提示"), 0);;
+			return;
+		}
+		::MessageBox(NULL, _T("初始化相机成功"), _T("提示"), 0);
+		if_inte_al->SetEnabled(false);
 		slider->SetEnabled(true);
-		algo_select->SetEnabled(true);
+		selector->SetEnabled(true);
 		if_up_warning->SetEnabled(true);
 		if_alarm->SetEnabled(true);
 		if_show_dyna->SetEnabled(true);
-		if_inte_al->SetEnabled(true);
 		
-		pRich->AppendText("初始化按钮点击\n");
-		pRich->AppendText(ip->GetText());
-		pRich->AppendText(userName->GetText());
-		pRich->AppendText(password->GetText());
-
-		char temp[64];
-		sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
-		pRich->AppendText(temp);
-
-		if(lstrcmp(algo_select->GetText(), "算法1") == 0)
-			sprintf_s(temp, "算法选择为:算法1\n");
-		else 
-			sprintf_s(temp, "算法选择为:算法2\n");
-		pRich->AppendText(temp);
 		
-		if (if_inte_al->IsSelected()) {
-			pRich->AppendText("开启智能算法被选中\n");
-		}
-		if (if_up_warning->IsSelected()) {
-			pRich->AppendText("上传报警信息被选中\n");
-		}
-		if (if_alarm->IsSelected()) {
-			pRich->AppendText("开启算法报警被选中\n");
-		}
-		if (if_show_dyna->IsSelected()) {
-			pRich->AppendText("显示动检结果被选中\n");
-		}
 
+
+		//char temp[64];
+		//sprintf_s(temp, "\n灵敏度设置为:%d\n", slider->GetValue());
+		//pRich->AppendText(temp);
+
+		//if(lstrcmp(algo_select->GetText(), "算法1") == 0)
+		//	sprintf_s(temp, "算法选择为:算法1\n");
+		//else 
+		//	sprintf_s(temp, "算法选择为:算法2\n");
+		//pRich->AppendText(temp);
 	}
 
 	/* 播放画面按钮 */
 	void playVedio() {
-		if (pg == NULL) {
+		if (!pg->netSKD_inited()) {
 			::MessageBox(NULL, _T("请先初始化相机"), _T("提示"), 0);;
 			return;
 		}
-
-		updateFrame();
-		SetTimer(m_hWnd, 1, 200, NULL);
-		
+		SetTimer(m_hWnd, 1, 300, NULL);
 	}
+
 	/* 设置重设算法区域按钮  */
 	void setRegion() {
-		seted_rigion = true;
+		if (if_inte_al->IsSelected()) return;
+		if_inte_al->SetEnabled(true);
 		if (frame_arr[0].empty()) {
 			::MessageBox(NULL, _T("请先播放画面"), _T("提示"), 0);;
 			return;
@@ -180,26 +177,27 @@ public:
 	}
 
 
-	/* 更新draw图像 */
-	void updateDraw(int arr[]) {
-		imgDraw.create(drawY, drawX, CV_8UC3);
-		imgDraw.setTo(cv::Scalar(255, 255, 255));
-		rectangle(imgDraw, cv::Point(20, 100 - arr[0]), cv::Point(40, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(50, 100 - arr[1]), cv::Point(70, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(80, 100 - arr[2]), cv::Point(100, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(110, 100 - arr[3]), cv::Point(130, drawY), cv::Scalar(200, 200, 100), -1);
-		rectangle(imgDraw, cv::Point(140, 100 - arr[4]), cv::Point(160, drawY), cv::Scalar(200, 200, 100), -1);
-		imshow("draw", imgDraw);
-	}
+	///* 更新draw图像 */
+	//void updateDraw(int arr[]) {
+	//	imgDraw.create(drawY, drawX, CV_8UC3);
+	//	imgDraw.setTo(cv::Scalar(255, 255, 255));
+	//	rectangle(imgDraw, cv::Point(20, drawY - arr[0]), cv::Point(40, drawY), cv::Scalar(200, 200, 100), -1);
+	//	rectangle(imgDraw, cv::Point(50, drawY - arr[1]), cv::Point(70, drawY), cv::Scalar(200, 200, 100), -1);
+	//	rectangle(imgDraw, cv::Point(80, drawY - arr[2]), cv::Point(100, drawY), cv::Scalar(200, 200, 100), -1);
+	//	rectangle(imgDraw, cv::Point(110, drawY - arr[3]), cv::Point(130, drawY), cv::Scalar(200, 200, 100), -1);
+	//	rectangle(imgDraw, cv::Point(140, drawY - arr[4]), cv::Point(160, drawY), cv::Scalar(200, 200, 100), -1);
+	//	imshow("draw", imgDraw);
+	//}
 
 	/* 开启智能算法 */
 	void click_inte_al() { 
+
 		bool canConfig = if_inte_al->IsSelected();
 		ip->SetEnabled(canConfig);
 		userName->SetEnabled(canConfig);
 		password->SetEnabled(canConfig);
 		slider->SetEnabled(canConfig);
-		algo_select->SetEnabled(canConfig);
+		selector->SetEnabled(canConfig);
 		if_up_warning->SetEnabled(canConfig);
 		if_alarm->SetEnabled(canConfig);
 		if_show_dyna->SetEnabled(canConfig);
@@ -226,9 +224,9 @@ public:
 		}
 		if (msg.sType != _T("scroll")) {
 			pUI->SetPos(pUI->rc);
-			pUI2->SetPos(pUI2->rc);
+			//pUI2->SetPos(pUI2->rc);
 			imshow("cam", imgCam);
-			imshow("draw", imgDraw);
+			//imshow("draw", imgDraw);
 		}
 
 	}
@@ -237,8 +235,25 @@ public:
 		if (!isShowing)
 			return;
 		*pg >> frame_arr;
+		if (frame_arr[0].empty()) {
+			return;
+		}
 		if (if_inte_al->IsSelected()) { //开启智能算法
-			opticalFlow(frame_arr, if_show_dyna->IsSelected());
+			bool whichAl = (lstrcmp(selector->GetText(), "绝对灵敏度") == 0);
+			
+				
+			int d1 = _ttoi(degree1->GetText().GetData());
+			int d2 = _ttoi(degree2->GetText().GetData());
+			int err_level = opticalFlow(frame_arr, if_show_dyna->IsSelected(), if_up_warning->IsSelected(), whichAl, slider->GetValue(), d1, d2);
+			if (err_level > 0) {
+				time_t t;
+				struct tm* lt = new tm();
+				time(&t);//获取Unix时间戳。    
+				localtime_s(lt, &t);//转为时间结构。
+				char timeStr[100];
+				sprintf_s(timeStr, "%d-%d-%d %d:%d:%d\n", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);//输出结果    
+				pRich->AppendText(timeStr);
+			}
 		}
 		else {
 			if (cv::getWindowProperty("识别结果", WND_PROP_VISIBLE) == 1)
@@ -248,9 +263,7 @@ public:
 		}
 		int nCols = 578;
 		int nRows = frame_arr[1].rows * nCols / frame_arr[1].cols;
-
 		imgCam = Mat(nRows, nCols, frame_arr[1].type());
-
 		resize(frame_arr[1], imgCam, imgCam.size(), 0, 0, INTER_LINEAR);
 		imshow("cam", imgCam);
 	}
@@ -280,16 +293,18 @@ public:
 			ip = static_cast<CEditUI*>(m_pm.FindControl(_T("ip")));
 			userName = static_cast<CEditUI*>(m_pm.FindControl(_T("userName")));
 			password = static_cast<CEditUI*>(m_pm.FindControl(_T("password")));
+			degree1 = static_cast<CEditUI*>(m_pm.FindControl(_T("degree1")));
+			degree2 = static_cast<CEditUI*>(m_pm.FindControl(_T("degree2")));
 			camWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("camMedia")));
-			drawWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("draw")));
+			//drawWnd = static_cast<CHorizontalLayoutUI*>(m_pm.FindControl(_T("draw")));
 			slider = static_cast<CSliderUI*>(m_pm.FindControl(_T("spec_controlor"))); 
-			algo_select = static_cast<CComboUI*>(m_pm.FindControl(_T("algo_select")));
+			selector = static_cast<CComboUI*>(m_pm.FindControl(_T("algo_select")));
 			if_inte_al = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_inte_al")));
 			if_up_warning = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_up_warning")));
 			if_alarm = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_alarm")));
 			if_show_dyna = static_cast<CCheckBoxUI*>(m_pm.FindControl(_T("if_show_dyna")));
 			slider->SetEnabled(false);
-			algo_select->SetEnabled(false);
+			selector->SetEnabled(false);
 			if_up_warning->SetEnabled(false);
 			if_alarm->SetEnabled(false);
 			if_show_dyna->SetEnabled(false);
@@ -303,13 +318,13 @@ public:
 			pUI->SetEnabled(false);
 			
 			
-			pUI2 = new CWndUI(310,401,drawX,drawY);
-			drawWnd->RemoveAll();
-			drawWnd->Add(pUI2);
-			hWndDraw = CreateWindow(_T("STATIC"), _T("柱状图"), WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 310, 401, drawX, drawY,
-				m_pm.GetPaintWindow(), (HMENU)0, NULL, NULL);
-			pUI2->Attach(hWndDraw);
-			pUI2->SetEnabled(false);
+			//pUI2 = new CWndUI(310,401,drawX,drawY);
+			//drawWnd->RemoveAll();
+			//drawWnd->Add(pUI2);
+			//hWndDraw = CreateWindow(_T("STATIC"), _T("柱状图"), WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 310, 401, drawX, drawY,
+			//	m_pm.GetPaintWindow(), (HMENU)0, NULL, NULL);
+			//pUI2->Attach(hWndDraw);
+			//pUI2->SetEnabled(false);
 
 			cv::namedWindow("cam", CV_WINDOW_AUTOSIZE);
 			HWND hWnd = (HWND)cvGetWindowHandle("cam");
@@ -317,18 +332,23 @@ public:
 			::SetParent(hWnd, hWndVedio);
 			::ShowWindow(hParent, SW_HIDE);
 
-			cv::namedWindow("draw", CV_WINDOW_AUTOSIZE);
-			hWnd = (HWND)cvGetWindowHandle("draw");
-			hParent = ::GetParent(hWnd);
-			::SetParent(hWnd, hWndDraw);
-			::ShowWindow(hParent, SW_HIDE);
+			//cv::namedWindow("draw", CV_WINDOW_AUTOSIZE);
+			//hWnd = (HWND)cvGetWindowHandle("draw");
+			//hParent = ::GetParent(hWnd);
+			//::SetParent(hWnd, hWndDraw);
+			//::ShowWindow(hParent, SW_HIDE);
 
-			imgDraw.create(drawY, drawX, CV_8UC3);
+			//imgDraw.create(drawY, drawX, CV_8UC3);
 			imgCam.create(camY, camX, CV_8UC3);
-			imgDraw.setTo(cv::Scalar(255, 255, 255));
+			//imgDraw.setTo(cv::Scalar(255, 255, 255));
 			imgCam.setTo(cv::Scalar(255,255, 255));
 
-			updateDraw(new int[]{60,20,80,40,20});
+			//updateDraw(new int[]{0,20,80,40,100});
+			
+				
+			ip->SetText("172.16.19.213");
+			userName->SetText("admin");
+			password->SetText("IO0n2a4G");
 			return 0;
 		}
 		else if (uMsg == WM_DESTROY) {

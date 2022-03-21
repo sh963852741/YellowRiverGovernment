@@ -11,7 +11,6 @@ using namespace cv;
 class CameraController
 {
 private:
-	
 	LLONG login_handle = 0;
 	cv::Mat fileToMat(char buffer[], unsigned int len);
 public:
